@@ -1,0 +1,6 @@
+pre-commit
+tomli==2.0.1; python_version < '3.11'
+img2table[easyocr]
+pdf2image
+matplotlib
+requests
