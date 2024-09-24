@@ -65,7 +65,7 @@ def show_table_in_image(image_bytes: bytes, tables: List[ExtractedTable]):
             for cell in row:
                 cv2.rectangle(table_img, (cell.bbox.x1, cell.bbox.y1), (cell.bbox.x2, cell.bbox.y2), (0, 0, 255), 2)
 
-    plt.imshow(table_img[:, :, ::-1])
+    plt.imshow(table_img[:, :, ::-1])  # BGR to RGB
     plt.show()
 
 
@@ -87,6 +87,8 @@ def main(
             show_table_in_image(image_bytes=image_bytes.read(), tables=tables)
 
             image_bytes.close()
+            print("-" * 25)
+        print("*" * 50)
         # break
 
 
