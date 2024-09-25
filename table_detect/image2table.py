@@ -10,7 +10,6 @@ import cv2
 import numpy as np
 import pdf2image
 from img2table.document.base import Document
-from img2table.ocr import EasyOCR
 from img2table.ocr.base import OCRInstance
 from img2table.tables.image import TableImage
 from img2table.tables.objects.extraction import ExtractedTable
@@ -26,7 +25,7 @@ _filenames = [
     "港洲-陸軍-584旅F棟B區4FL樑版.pdf",
     "太豪-S016-1F車道樑版.pdf",
 ]
-ocr = EasyOCR(lang=["ch_tra", "en"])
+ocr = None
 
 
 def run_table_detect(
