@@ -2,16 +2,17 @@
 # TODO: 隱性表格線 跟 顯性表格線 怎麼結合
 # TODO: 要確認有些表格線框的歪歪的, 且好像有多框還怎麼樣的
 
-from io import BytesIO
+import io
 from pathlib import Path
 from typing import List, Union
 
 import cv2
 import numpy as np
 import pdf2image
-from img2table.document import Image as ImageDoc
+from img2table.document.base import Document
 from img2table.ocr import EasyOCR
 from img2table.ocr.base import OCRInstance
+from img2table.tables.image import TableImage
 from img2table.tables.objects.extraction import ExtractedTable
 from matplotlib import pyplot as plt
 
@@ -29,36 +30,61 @@ ocr = EasyOCR(lang=["ch_tra", "en"])
 
 
 def run_table_detect(
-    src: Union[str, Path, bytes, BytesIO],
+    src: Union[str, Path, bytes, io.BytesIO],
     ocr: OCRInstance = None,
     implicit_rows=False,
     implicit_columns=False,
     min_confidence=0,
+    **kwds,
 ) -> List[ExtractedTable]:
+    document = Document("")
+
     # Instantiation of document, either an image or a PDF
-    doc = ImageDoc(src)
+    if isinstance(src, bytes):
+        _src = src
+    elif isinstance(src, io.BytesIO):
+        src.seek(0)
+        _src = src.read()
+    elif isinstance(src, (str, Path)):
+        with io.open(str(src), "rb") as f:
+            _src = f.read()
+
+    img = cv2.imdecode(np.frombuffer(_src, np.uint8), cv2.IMREAD_COLOR)
+    doc = TableImage(img=img, **kwds)
 
     # Table extraction
-    extracted_tables = doc.extract_tables(
-        ocr=ocr,
+    tables = doc.extract_tables(
         implicit_rows=implicit_rows,
         implicit_columns=implicit_columns,
-        min_confidence=min_confidence,
         borderless_tables=False,
     )
-    if not extracted_tables:
-        extracted_tables = doc.extract_tables(
-            ocr=ocr,
+    if not tables:
+        tables = doc.extract_tables(
             implicit_rows=implicit_rows,
             implicit_columns=implicit_columns,
-            min_confidence=min_confidence,
             borderless_tables=True,
         )
-    return extracted_tables
+
+    return document.get_table_content(
+        tables={0: tables},
+        ocr=ocr,
+        min_confidence=min_confidence,
+    ).get(0)
 
 
-def show_table_in_image(image_bytes: bytes, tables: List[ExtractedTable]):
-    table_img = cv2.imdecode(np.fromstring(image_bytes, np.uint8), cv2.IMREAD_COLOR)
+def show_table_in_image(
+    src: Union[str, Path, bytes, io.BytesIO],
+    tables: List[ExtractedTable],
+):
+    if isinstance(src, bytes):
+        _src = src
+    elif isinstance(src, io.BytesIO):
+        src.seek(0)
+        _src = src.read()
+    elif isinstance(src, (str, Path)):
+        with io.open(str(src), "rb") as f:
+            _src = f.read()
+    table_img = cv2.imdecode(np.fromstring(_src, np.uint8), cv2.IMREAD_COLOR)
 
     for table_index, table in enumerate(tables):
         row_index = 0
@@ -90,12 +116,11 @@ def main(
         path = Path(_root_path, filename)
         images = pdf2image.convert_from_path(str(path), dpi=dpi)
         for image in images:
-            image_bytes = BytesIO()
+            image_bytes = io.BytesIO()
             image.save(fp=image_bytes, format=image_format)
-            tables = run_table_detect(src=image_bytes, ocr=None)
 
-            image_bytes.seek(0)
-            show_table_in_image(image_bytes=image_bytes.read(), tables=tables)
+            tables = run_table_detect(src=image_bytes, ocr=None)
+            show_table_in_image(src=image_bytes, tables=tables)
 
             image_bytes.close()
             print("-" * 25)
