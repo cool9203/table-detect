@@ -60,10 +60,20 @@ def run_table_detect(
 def show_table_in_image(image_bytes: bytes, tables: List[ExtractedTable]):
     table_img = cv2.imdecode(np.fromstring(image_bytes, np.uint8), cv2.IMREAD_COLOR)
 
-    for table in tables:
+    for table_index, table in enumerate(tables):
+        row_index = 0
         for row in table.content.values():
             for cell in row:
                 cv2.rectangle(table_img, (cell.bbox.x1, cell.bbox.y1), (cell.bbox.x2, cell.bbox.y2), (0, 0, 255), 2)
+                cv2.putText(
+                    table_img,
+                    f"{table_index}-{row_index}",
+                    (cell.bbox.x1, cell.bbox.y1),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (255, 0, 0),
+                )
+                row_index += 1
 
     plt.imshow(table_img[:, :, ::-1])  # BGR to RGB
     plt.show()
@@ -71,13 +81,14 @@ def show_table_in_image(image_bytes: bytes, tables: List[ExtractedTable]):
 
 def main(
     image_format: str = "png",
+    dpi: int = 200,
     *args,
     **kwds,
 ) -> None:
     for filename in _filenames:
         print(filename)
         path = Path(_root_path, filename)
-        images = pdf2image.convert_from_path(str(path))
+        images = pdf2image.convert_from_path(str(path), dpi=dpi)
         for image in images:
             image_bytes = BytesIO()
             image.save(fp=image_bytes, format=image_format)
