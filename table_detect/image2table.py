@@ -16,6 +16,7 @@ from img2table.ocr.base import OCRInstance
 from img2table.tables.image import TableImage
 from img2table.tables.objects.extraction import ExtractedTable
 from matplotlib import pyplot as plt
+from PIL import Image
 
 _root_path = "/mnt/c/Users/ychsu/Downloads"
 _filenames = [
@@ -190,7 +191,13 @@ def main(
     for filename in _filenames:
         print(filename)
         path = Path(_root_path, filename)
-        images = pdf2image.convert_from_path(str(path), dpi=dpi)
+        if path.suffix == ".pdf":
+            images = pdf2image.convert_from_path(str(path), dpi=dpi)
+        elif path.suffix in [".jpg", ".jpeg", ".png", ".bmp"]:
+            images = [Image.open(str(path))]
+        else:
+            raise TypeError("Not support file extension")
+
         for image in images:
             image_bytes = io.BytesIO()
             image.save(fp=image_bytes, format=image_format)
@@ -201,7 +208,7 @@ def main(
             rotated_img, rotated = fix_rotation_image(img=img)
             print(f"rotated: {rotated}")
 
-            tables = run_table_detect(src=rotated_img, ocr=None, **kwds)
+            tables = run_table_detect(src=rotated_img, ocr=ocr, **kwds)
             # show_table_in_image(src=rotated_img, tables=tables, **kwds)
             show_table_bbox_in_image(src=rotated_img, tables=tables, **kwds)
 
