@@ -10,8 +10,9 @@ import cv2
 import numpy as np
 import pdf2image
 from cv2.typing import MatLike
-from img2table.document.base import Document
+from img2table.document import Image as ImageDoc
 from img2table.document.base.rotation import estimate_skew, get_connected_components, get_relevant_angles, rotate_img_with_border
+from img2table.ocr import EasyOCR
 from img2table.ocr.base import OCRInstance
 from img2table.tables.image import TableImage
 from img2table.tables.objects.extraction import ExtractedTable
@@ -20,12 +21,13 @@ from PIL import Image
 
 _root_path = "/mnt/c/Users/ychsu/Downloads"
 _filenames = [
+    "table_with_bold_text_and_lines.png",
     "大賈-馬禮遜美國學校 1區2F樑(一次).pdf",
     "港洲-陸軍-584旅F棟B區4FL樑版.pdf",
     "太豪-S016-1F車道樑版.pdf",
 ]
 InputType = Union[str, Path, bytes, io.BytesIO, MatLike]
-ocr = None
+ocr = EasyOCR(lang=["ch_tra", "en"])
 
 
 def get_image(
@@ -83,9 +85,10 @@ def run_table_detect(
     show_processed_image: bool = False,
     **kwds,
 ) -> List[ExtractedTable]:
-    document = Document("")
-
     img = get_image(src=src)
+    image_bytes = io.BytesIO()
+    Image.fromarray(img).save(fp=image_bytes, format="png")
+    document = ImageDoc(image_bytes)
 
     # image pre-process
     processed_img = img
@@ -124,11 +127,13 @@ def run_table_detect(
             borderless_tables=True,
         )
 
-    return document.get_table_content(
+    result = document.get_table_content(
         tables={0: tables},
         ocr=ocr,
         min_confidence=min_confidence,
     ).get(0)
+    image_bytes.close()
+    return result
 
 
 def show_table_in_image(
@@ -185,6 +190,7 @@ def main(
     image_format: str = "png",
     dpi: int = 200,
     show_image: bool = True,
+    show_image_bbox: bool = False,
     *args,
     **kwds,
 ) -> None:
@@ -209,8 +215,14 @@ def main(
             print(f"rotated: {rotated}")
 
             tables = run_table_detect(src=rotated_img, ocr=ocr, **kwds)
-            # show_table_in_image(src=rotated_img, tables=tables, **kwds)
-            show_table_bbox_in_image(src=rotated_img, tables=tables, **kwds)
+
+            for table in tables:
+                print(table.df)
+
+            if show_image:
+                show_table_in_image(src=rotated_img, tables=tables, **kwds)
+            if show_image_bbox:
+                show_table_bbox_in_image(src=rotated_img, tables=tables, **kwds)
 
             image_bytes.close()
             print("-" * 25)
@@ -222,4 +234,5 @@ if __name__ == "__main__":
     main(
         dpi=200,
         show_image=True,
+        show_image_bbox=False,
     )
