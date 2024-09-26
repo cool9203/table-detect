@@ -61,6 +61,33 @@ def show_table_in_image(
     plt.show()
 
 
+def show_table_bbox_in_image(
+    src: Union[str, Path, bytes, io.BytesIO],
+    tables: Lattice,
+):
+    if isinstance(src, bytes):
+        _src = src
+    elif isinstance(src, io.BytesIO):
+        src.seek(0)
+        _src = src.read()
+    elif isinstance(src, (str, Path)):
+        with io.open(str(src), "rb") as f:
+            _src = f.read()
+    table_img = cv2.imdecode(np.fromstring(_src, np.uint8), cv2.IMREAD_COLOR)
+
+    for points, joints in tables.table_bbox.items():
+        cv2.rectangle(
+            table_img,
+            (int(points[0]), int(tables.pdf_height - points[1])),
+            (int(points[2]), int(tables.pdf_height - points[3])),
+            (0, 0, 255),
+            2,
+        )
+
+    plt.imshow(table_img[:, :, ::-1])  # BGR to RGB
+    plt.show()
+
+
 def main(
     image_format: str = "png",
     dpi: int = 200,
@@ -77,7 +104,8 @@ def main(
                 image.save(fp=str(_path), format=image_format)
 
                 tables = run_table_detect(src=str(_path), ocr=None, width=image.width, height=image.height)
-                show_table_in_image(src=str(_path), tables=tables)
+                # show_table_in_image(src=str(_path), tables=tables)
+                show_table_bbox_in_image(src=str(_path), tables=tables)
 
                 print("-" * 25)
         print("*" * 50)
