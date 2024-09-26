@@ -10,14 +10,11 @@ import cv2
 import numpy as np
 import pdf2image
 from img2table.document.base import Document
+from img2table.document.base.rotation import fix_rotation_image
 from img2table.ocr.base import OCRInstance
 from img2table.tables.image import TableImage
 from img2table.tables.objects.extraction import ExtractedTable
 from matplotlib import pyplot as plt
-
-import utils
-
-logger = utils.get_logger(logger_name=__name__)
 
 _root_path = "/mnt/c/Users/ychsu/Downloads"
 _filenames = [
@@ -49,7 +46,16 @@ def run_table_detect(
             _src = f.read()
 
     img = cv2.imdecode(np.frombuffer(_src, np.uint8), cv2.IMREAD_COLOR)
-    doc = TableImage(img=img, **kwds)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+    # image pre-process
+    rotated_img, _ = fix_rotation_image(img=img)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (11, 11))
+    rotated_img = cv2.dilate(rotated_img, kernel)  # 膨脹
+    rotated_img = cv2.dilate(rotated_img, kernel)  # 膨脹
+    rotated_img = cv2.erode(rotated_img, kernel)  # 侵蝕
+
+    doc = TableImage(img=rotated_img, **kwds)
 
     # Table extraction
     tables = doc.extract_tables(
@@ -83,24 +89,39 @@ def show_table_in_image(
     elif isinstance(src, (str, Path)):
         with io.open(str(src), "rb") as f:
             _src = f.read()
-    table_img = cv2.imdecode(np.fromstring(_src, np.uint8), cv2.IMREAD_COLOR)
+    table_img = cv2.imdecode(np.frombuffer(_src, np.uint8), cv2.IMREAD_COLOR)
+    table_img = cv2.cvtColor(table_img, cv2.COLOR_BGR2RGB)
 
+    # image pre-process
+    table_img, _ = fix_rotation_image(img=table_img)
+
+    used_boxes = set()
     for table_index, table in enumerate(tables):
         row_index = 0
         for row in table.content.values():
             for cell in row:
-                cv2.rectangle(table_img, (cell.bbox.x1, cell.bbox.y1), (cell.bbox.x2, cell.bbox.y2), (0, 0, 255), 2)
+                box_element = (cell.bbox.x1, cell.bbox.y1, cell.bbox.x2, cell.bbox.y2)
+                if box_element in used_boxes:
+                    continue
+                used_boxes.add(box_element)
+                cv2.rectangle(
+                    table_img,
+                    (cell.bbox.x1, cell.bbox.y1),
+                    (cell.bbox.x2, cell.bbox.y2),
+                    (255, 0, 0),
+                    2,
+                )
                 cv2.putText(
                     table_img,
                     f"{table_index}-{row_index}",
                     (cell.bbox.x1, cell.bbox.y1),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     1,
-                    (255, 0, 0),
+                    (0, 0, 255),
                 )
                 row_index += 1
 
-    plt.imshow(table_img[:, :, ::-1])  # BGR to RGB
+    plt.imshow(table_img)  # BGR to RGB
     plt.show()
 
 
