@@ -9,6 +9,7 @@ from typing import List, Union
 import cv2
 import numpy as np
 import pdf2image
+from cv2.typing import MatLike
 from img2table.document.base import Document
 from img2table.document.base.rotation import fix_rotation_image
 from img2table.ocr.base import OCRInstance
@@ -26,36 +27,53 @@ ocr = None
 
 
 def run_table_detect(
-    src: Union[str, Path, bytes, io.BytesIO],
+    src: Union[str, Path, bytes, io.BytesIO, MatLike],
     ocr: OCRInstance = None,
     implicit_rows=False,
     implicit_columns=False,
     min_confidence=0,
+    show_processed_image: bool = False,
     **kwds,
 ) -> List[ExtractedTable]:
     document = Document("")
 
     # Instantiation of document, either an image or a PDF
-    if isinstance(src, bytes):
-        _src = src
-    elif isinstance(src, io.BytesIO):
-        src.seek(0)
-        _src = src.read()
-    elif isinstance(src, (str, Path)):
-        with io.open(str(src), "rb") as f:
-            _src = f.read()
-
-    img = cv2.imdecode(np.frombuffer(_src, np.uint8), cv2.IMREAD_COLOR)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    if isinstance(src, (MatLike, np.ndarray)):
+        img = src
+    else:
+        if isinstance(src, bytes):
+            _src = src
+        elif isinstance(src, io.BytesIO):
+            src.seek(0)
+            _src = src.read()
+        elif isinstance(src, (str, Path)):
+            with io.open(str(src), "rb") as f:
+                _src = f.read()
+        img = cv2.imdecode(np.frombuffer(_src, np.uint8), cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # image pre-process
-    rotated_img, _ = fix_rotation_image(img=img)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (11, 11))
-    rotated_img = cv2.dilate(rotated_img, kernel)  # 膨脹
-    rotated_img = cv2.dilate(rotated_img, kernel)  # 膨脹
-    rotated_img = cv2.erode(rotated_img, kernel)  # 侵蝕
+    gray_img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (5, 5))
 
-    doc = TableImage(img=rotated_img, **kwds)
+    gray_img = cv2.erode(gray_img, kernel)  # 對黑色膨脹(侵蝕白色)
+    gray_img = cv2.dilate(gray_img, kernel)  # 對黑色侵蝕(白色膨脹)
+
+    processed_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+
+    if show_processed_image:
+        plt.subplot(1, 2, 1)
+        plt.imshow(img)
+        plt.title("origin")
+
+        plt.subplot(1, 2, 2)
+        plt.imshow(processed_img)
+        plt.title("processed")
+
+        plt.show()
+
+    processed_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+    doc = TableImage(img=processed_img, **kwds)
 
     # Table extraction
     tables = doc.extract_tables(
@@ -81,19 +99,23 @@ def show_table_in_image(
     src: Union[str, Path, bytes, io.BytesIO],
     tables: List[ExtractedTable],
 ):
-    if isinstance(src, bytes):
-        _src = src
-    elif isinstance(src, io.BytesIO):
-        src.seek(0)
-        _src = src.read()
-    elif isinstance(src, (str, Path)):
-        with io.open(str(src), "rb") as f:
-            _src = f.read()
-    table_img = cv2.imdecode(np.frombuffer(_src, np.uint8), cv2.IMREAD_COLOR)
-    table_img = cv2.cvtColor(table_img, cv2.COLOR_BGR2RGB)
+    # Instantiation of document, either an image or a PDF
+    if isinstance(src, (MatLike, np.ndarray)):
+        img = src
+    else:
+        if isinstance(src, bytes):
+            _src = src
+        elif isinstance(src, io.BytesIO):
+            src.seek(0)
+            _src = src.read()
+        elif isinstance(src, (str, Path)):
+            with io.open(str(src), "rb") as f:
+                _src = f.read()
+        img = cv2.imdecode(np.frombuffer(_src, np.uint8), cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
     # image pre-process
-    table_img, _ = fix_rotation_image(img=table_img)
+    img, _ = fix_rotation_image(img=img)
 
     used_boxes = set()
     for table_index, table in enumerate(tables):
@@ -105,14 +127,14 @@ def show_table_in_image(
                     continue
                 used_boxes.add(box_element)
                 cv2.rectangle(
-                    table_img,
+                    img,
                     (cell.bbox.x1, cell.bbox.y1),
                     (cell.bbox.x2, cell.bbox.y2),
                     (255, 0, 0),
                     2,
                 )
                 cv2.putText(
-                    table_img,
+                    img,
                     f"{table_index}-{row_index}",
                     (cell.bbox.x1, cell.bbox.y1),
                     cv2.FONT_HERSHEY_SIMPLEX,
@@ -121,7 +143,7 @@ def show_table_in_image(
                 )
                 row_index += 1
 
-    plt.imshow(table_img)  # BGR to RGB
+    plt.imshow(img)
     plt.show()
 
 
@@ -139,8 +161,14 @@ def main(
             image_bytes = io.BytesIO()
             image.save(fp=image_bytes, format=image_format)
 
-            tables = run_table_detect(src=image_bytes, ocr=None)
-            show_table_in_image(src=image_bytes, tables=tables)
+            image_bytes.seek(0)
+            img = cv2.imdecode(np.frombuffer(image_bytes.read(), np.uint8), cv2.IMREAD_COLOR)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            rotated_img, rotated = fix_rotation_image(img=img)
+            print(f"rotated: {rotated}")
+
+            tables = run_table_detect(src=rotated_img, ocr=None)
+            show_table_in_image(src=rotated_img, tables=tables)
 
             image_bytes.close()
             print("-" * 25)
