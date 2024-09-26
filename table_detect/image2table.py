@@ -205,16 +205,14 @@ def main(
             raise TypeError("Not support file extension")
 
         for image in images:
-            image_bytes = io.BytesIO()
-            image.save(fp=image_bytes, format=image_format)
+            origin_image_bytes = io.BytesIO()
+            image.save(fp=origin_image_bytes, format=image_format)
 
-            image_bytes.seek(0)
-            img = cv2.imdecode(np.frombuffer(image_bytes.read(), np.uint8), cv2.IMREAD_COLOR)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img = get_image(origin_image_bytes)
             rotated_img, rotated = fix_rotation_image(img=img)
             print(f"rotated: {rotated}")
 
-            tables = run_table_detect(src=rotated_img, ocr=ocr, **kwds)
+            tables = run_table_detect(src=img, ocr=ocr, **kwds)
 
             for table in tables:
                 print(table.df)
@@ -224,7 +222,7 @@ def main(
             if show_image_bbox:
                 show_table_bbox_in_image(src=rotated_img, tables=tables, **kwds)
 
-            image_bytes.close()
+            origin_image_bytes.close()
             print("-" * 25)
         print("*" * 50)
         # break
