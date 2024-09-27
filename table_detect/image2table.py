@@ -2,6 +2,7 @@
 # TODO: 隱性表格線 跟 顯性表格線 怎麼結合
 # TODO: 要確認有些表格線框的歪歪的, 且好像有多框還怎麼樣的
 
+import copy
 import io
 from pathlib import Path
 from typing import List, Tuple, Union
@@ -12,7 +13,6 @@ import pdf2image
 from cv2.typing import MatLike
 from img2table.document import Image as ImageDoc
 from img2table.document.base.rotation import estimate_skew, get_connected_components, get_relevant_angles, rotate_img_with_border
-from img2table.ocr import EasyOCR
 from img2table.ocr.base import OCRInstance
 from img2table.tables.image import TableImage
 from img2table.tables.objects.extraction import ExtractedTable
@@ -27,7 +27,7 @@ _filenames = [
     "太豪-S016-1F車道樑版.pdf",
 ]
 InputType = Union[str, Path, bytes, io.BytesIO, MatLike]
-ocr = EasyOCR(lang=["ch_tra", "en"])
+ocr = None
 
 
 def get_image(
@@ -126,6 +126,15 @@ def run_table_detect(
             implicit_columns=implicit_columns,
             borderless_tables=True,
         )
+
+    _img = copy.deepcopy(processed_img)
+    for line in doc.lines:
+        if line.horizontal:
+            cv2.rectangle(_img, (line.x1, line.y1), (line.x2, line.y2), (255, 0, 0), 2)
+        elif line.vertical:
+            cv2.rectangle(_img, (line.x1, line.y1), (line.x2, line.y2), (255, 0, 0), 2)
+    plt.imshow(_img)
+    plt.show()
 
     result = document.get_table_content(
         tables={0: tables},
