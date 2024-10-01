@@ -1,20 +1,24 @@
 # coding: utf-8
 
 import io
-from importlib.metadata import version
 from pathlib import Path
 from typing import List
 
 import cv2
 import numpy as np
+import pandas as pd
 import pdf2image
 from img2table.document import Image as ImageDoc
+from img2table.ocr import EasyOCR
 from img2table.ocr.base import OCRInstance
 from img2table.tables.objects.extraction import ExtractedTable
 from matplotlib import pyplot as plt
 from PIL import Image
 
 from table_detect.image2table import InputType, _filenames, _root_path, fix_rotation_image, get_image
+
+# ocr = EasyOCR(lang=["ch_tra", "en"])
+ocr = None
 
 
 def run_table_detect(
@@ -84,9 +88,6 @@ def show_table_in_image(
                 )
                 row_index += 1
 
-    plt.imshow(img)
-    plt.show()
-
     return img
 
 
@@ -108,23 +109,37 @@ def show_table_bbox_in_image(
 
 def main(
     image_format: str = "png",
+    output_path: str = "./data",
     dpi: int = 200,
-    show_image: bool = True,
+    show_image: bool = False,
     show_image_bbox: bool = False,
     save_table_image: bool = False,
     save_table_bbox_image: bool = False,
+    save_df_to_xlsx: bool = False,
     *args,
     **kwds,
 ) -> None:
     for filename in _filenames:
         print(filename)
-        save_path = Path("./data", version("img2table"), filename)
+        save_path = Path(output_path, filename)
         save_path.mkdir(parents=True, exist_ok=True)
         path = Path(_root_path, filename)
+        image_name_transform = dict()
         if path.suffix == ".pdf":
             images = pdf2image.convert_from_path(str(path), dpi=dpi)
         elif path.suffix in [".jpg", ".jpeg", ".png", ".bmp"]:
             images = [Image.open(str(path))]
+        elif path.is_dir():
+            images = list()
+            for _path in path.iterdir():
+                print(_path.name)
+                if _path.suffix == ".pdf":
+                    images += pdf2image.convert_from_path(str(_path), dpi=dpi)
+                elif _path.suffix in [".jpg", ".jpeg", ".png", ".bmp"]:
+                    image_name_transform[len(images)] = _path.stem
+                    images.append(Image.open(str(_path)))
+                else:
+                    raise TypeError("Not support file extension")
         else:
             raise TypeError("Not support file extension")
 
@@ -136,16 +151,30 @@ def main(
             rotated_img, rotated = fix_rotation_image(img=img)
             print(f"rotated: {rotated}")
 
-            tables = run_table_detect(src=img, ocr=None, **kwds)
+            tables = run_table_detect(src=img, ocr=ocr, **kwds)
 
-            if show_image:
+            save_filename = image_name_transform.get(index, index)
+            if save_df_to_xlsx:
+                writer = pd.ExcelWriter(str(save_path / f"{save_filename}.xlsx"))
+                for table_index, table in enumerate(tables):
+                    table.df.to_excel(writer, sheet_name=str(table_index), index=False, header=False)
+                writer.close()
+
+            if show_image or save_table_image:
                 _img = show_table_in_image(src=rotated_img, tables=tables, **kwds)
+                if show_image:
+                    plt.imshow(_img)
+                    plt.show()
                 if save_table_image:
-                    plt.imsave(str(save_path / f"{index}.png"), _img)
-            if show_image_bbox:
+                    plt.imsave(str(save_path / f"{save_filename}.png"), _img)
+
+            if show_image_bbox or save_table_bbox_image:
                 _img = show_table_bbox_in_image(src=rotated_img, tables=tables, **kwds)
+                if show_image_bbox:
+                    plt.imshow(_img)
+                    plt.show()
                 if save_table_bbox_image:
-                    plt.imsave(str(save_path / f"{index}.png"), _img)
+                    plt.imsave(str(save_path / f"{save_filename}.png"), _img)
 
             origin_image_bytes.close()
             print("-" * 25)
@@ -156,6 +185,10 @@ def main(
 if __name__ == "__main__":
     main(
         dpi=200,
-        show_image=True,
+        output_path="./data/result-temp",
+        show_image=False,
         show_image_bbox=False,
+        save_table_image=True,
+        save_table_bbox_image=False,
+        save_df_to_xlsx=False,
     )

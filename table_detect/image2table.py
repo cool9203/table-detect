@@ -21,7 +21,8 @@ from PIL import Image
 
 _root_path = "/mnt/c/Users/ychsu/Downloads"
 _filenames = [
-    "table_with_bold_text_and_lines.png",
+    "AIOCR",
+    "table-pic",
     "大賈-馬禮遜美國學校 1區2F樑(一次).pdf",
     "港洲-陸軍-584旅F棟B區4FL樑版.pdf",
     "太豪-S016-1F車道樑版.pdf",
