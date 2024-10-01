@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import io
+import time
 from pathlib import Path
 from typing import List
 
@@ -17,8 +18,8 @@ from PIL import Image
 
 from table_detect.image2table import InputType, _filenames, _root_path, fix_rotation_image, get_image
 
-# ocr = EasyOCR(lang=["ch_tra", "en"])
-ocr = None
+ocr = EasyOCR(lang=["ch_tra", "en"])
+# ocr = None
 
 
 def run_table_detect(
@@ -119,6 +120,7 @@ def main(
     *args,
     **kwds,
 ) -> None:
+    all_time = list()
     for filename in _filenames:
         print(filename)
         save_path = Path(output_path, filename)
@@ -151,7 +153,10 @@ def main(
             rotated_img, rotated = fix_rotation_image(img=img)
             print(f"rotated: {rotated}")
 
+            start_time = time.time()
             tables = run_table_detect(src=img, ocr=ocr, **kwds)
+            all_time.append(time.time() - start_time)
+            print(f"time: {all_time[-1]}")
 
             save_filename = image_name_transform.get(index, index)
             if save_df_to_xlsx:
@@ -180,15 +185,16 @@ def main(
             print("-" * 25)
         print("*" * 50)
         # break
+    print(f"average time: {sum(all_time) / len(all_time)}")
 
 
 if __name__ == "__main__":
     main(
-        dpi=200,
+        dpi=400,
         output_path="./data/result-temp",
         show_image=False,
         show_image_bbox=False,
         save_table_image=True,
         save_table_bbox_image=False,
-        save_df_to_xlsx=False,
+        save_df_to_xlsx=True,
     )
