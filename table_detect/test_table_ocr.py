@@ -18,8 +18,8 @@ from PIL import Image
 
 from table_detect.image2table import InputType, _filenames, _root_path, fix_rotation_image, get_image
 
-ocr = EasyOCR(lang=["ch_tra", "en"])
-# ocr = None
+# ocr = EasyOCR(lang=["ch_tra", "en"])
+ocr = None
 
 
 def run_table_detect(
@@ -54,9 +54,15 @@ def run_table_detect(
         )
 
     # Predict table cell text content
+    used_boxes = set()
     for table in tables:
         for row in table.content.values():
             for cell in row:
+                box_element = (cell.bbox.x1, cell.bbox.y1, cell.bbox.x2, cell.bbox.y2)
+                if box_element in used_boxes or not ocr:
+                    continue
+                used_boxes.add(box_element)
+
                 if (cell.bbox.y2 - cell.bbox.y1 == 0) or (cell.bbox.x2 - cell.bbox.x1 == 0):
                     continue
                 words = ocr.reader.readtext(img[cell.bbox.y1 : cell.bbox.y2, cell.bbox.x1 : cell.bbox.x2])
@@ -112,14 +118,12 @@ def show_table_bbox_in_image(
     **kwds,
 ):
     img = get_image(src=src)
-    frontend_img = np.zeros(img.shape, dtype=np.uint8)
-    for _, table in enumerate(tables):
-        cv2.rectangle(frontend_img, (table.bbox.x1, table.bbox.y1), (table.bbox.x2, table.bbox.y2), (255, 0, 0), -1)
-    img = cv2.addWeighted(img, 0.9, frontend_img, 0.3, 1)
+    # frontend_img = np.zeros(img.shape, dtype=np.uint8)
+    # for _, table in enumerate(tables):
+    #     cv2.rectangle(frontend_img, (table.bbox.x1, table.bbox.y1), (table.bbox.x2, table.bbox.y2), (255, 0, 0), -1)
+    # img = cv2.addWeighted(img, 0.9, frontend_img, 0.3, 1)
 
-    plt.imshow(img)
-    plt.show()
-    return img
+    return img[tables[0].bbox.y1 : tables[0].bbox.y2, tables[0].bbox.x1 : tables[0].bbox.x2]
 
 
 def main(
@@ -208,7 +212,7 @@ if __name__ == "__main__":
         output_path="./data/result-temp",
         show_image=False,
         show_image_bbox=False,
-        save_table_image=True,
-        save_table_bbox_image=False,
-        save_df_to_xlsx=True,
+        save_table_image=False,
+        save_table_bbox_image=True,
+        save_df_to_xlsx=False,
     )
