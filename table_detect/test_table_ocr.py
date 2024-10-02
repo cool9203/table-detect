@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import pdf2image
+from cv2.typing import MatLike
 from img2table.document import Image as ImageDoc
 from img2table.ocr import EasyOCR
 from img2table.ocr.base import OCRInstance
@@ -79,6 +80,7 @@ def run_table_detect(
 def show_table_in_image(
     src: InputType,
     tables: List[ExtractedTable],
+    cell_text: bool = True,
     **kwds,
 ):
     img = get_image(src=src)
@@ -99,17 +101,31 @@ def show_table_in_image(
                     (255, 0, 0),
                     2,
                 )
-                cv2.putText(
-                    img,
-                    f"{table_index}-{row_index}",
-                    (cell.bbox.x1, cell.bbox.y1),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0, 0, 255),
-                )
+                if cell_text:
+                    cv2.putText(
+                        img,
+                        f"{table_index}-{row_index}",
+                        (cell.bbox.x1, cell.bbox.y1),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        1,
+                        (0, 0, 255),
+                    )
                 row_index += 1
 
     return img
+
+
+def crop_table_bbox(
+    src: InputType,
+    tables: List[ExtractedTable],
+    **kwds,
+) -> List[MatLike]:
+    img = get_image(src=src)
+    crop_img = list()
+    for table in tables:
+        crop_img.append(img[table.bbox.y1 : table.bbox.y2, table.bbox.x1 : table.bbox.x2])
+
+    return crop_img
 
 
 def show_table_bbox_in_image(
@@ -118,18 +134,20 @@ def show_table_bbox_in_image(
     **kwds,
 ):
     img = get_image(src=src)
-    # frontend_img = np.zeros(img.shape, dtype=np.uint8)
-    # for _, table in enumerate(tables):
-    #     cv2.rectangle(frontend_img, (table.bbox.x1, table.bbox.y1), (table.bbox.x2, table.bbox.y2), (255, 0, 0), -1)
-    # img = cv2.addWeighted(img, 0.9, frontend_img, 0.3, 1)
+    frontend_img = np.zeros(img.shape, dtype=np.uint8)
+    for _, table in enumerate(tables):
+        cv2.rectangle(frontend_img, (table.bbox.x1, table.bbox.y1), (table.bbox.x2, table.bbox.y2), (255, 0, 0), -1)
+    img = cv2.addWeighted(img, 0.9, frontend_img, 0.3, 1)
 
-    return img[tables[0].bbox.y1 : tables[0].bbox.y2, tables[0].bbox.x1 : tables[0].bbox.x2]
+    return img
 
 
 def main(
     image_format: str = "png",
     output_path: str = "./data",
     dpi: int = 200,
+    save_crop_image: bool = False,
+    crop_image_draw_table_line: bool = False,
     show_image: bool = False,
     show_image_bbox: bool = False,
     save_table_image: bool = False,
@@ -183,6 +201,15 @@ def main(
                     table.df.to_excel(writer, sheet_name=str(table_index), index=False, header=False)
                 writer.close()
 
+            if save_crop_image:
+                if crop_image_draw_table_line:
+                    _img = show_table_in_image(src=rotated_img, tables=tables, cell_text=False, **kwds)
+                else:
+                    _img = rotated_img
+                crop_table_images = crop_table_bbox(src=_img, tables=tables, **kwds)
+                for i, crop_table_image in enumerate(crop_table_images):
+                    plt.imsave(str(save_path / f"{save_filename}-table-{i}.png"), crop_table_image)
+
             if show_image or save_table_image:
                 _img = show_table_in_image(src=rotated_img, tables=tables, **kwds)
                 if show_image:
@@ -213,6 +240,8 @@ if __name__ == "__main__":
         show_image=False,
         show_image_bbox=False,
         save_table_image=False,
-        save_table_bbox_image=True,
+        save_table_bbox_image=False,
         save_df_to_xlsx=False,
+        save_crop_image=True,
+        crop_image_draw_table_line=True,
     )
