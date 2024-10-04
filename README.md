@@ -16,7 +16,7 @@
 
 目前是使用
 
-`python table_detect --root_path <YOUR DATA ROOT PATH> -f <YOUR DATA IMAGE FILENAME> <YOUR DATA DIRECTORY NAME>`
+`python table_detect --root_path <YOUR DATA ROOT PATH> --filenames <YOUR DATA IMAGE FILENAME> <YOUR DATA DIRECTORY NAME>`
 
 使用 **先找出表格與對應儲存格框線, 再根據各儲存格使用 ocr 預測內容** 流程
 
