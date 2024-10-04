@@ -1,5 +1,11 @@
 # 力新案 - 表格偵測(base opencv)
 
+- [力新案 - 表格偵測(base opencv)](#力新案---表格偵測base-opencv)
+  - [安裝](#安裝)
+  - [啟動與使用指令](#啟動與使用指令)
+    - [資料路徑修改](#資料路徑修改)
+  - [問題解決](#問題解決)
+
 ## 安裝
 
 `pip install -e . && pip uninstall -y opencv-contrib-python opencv-python opencv-python-headless opencv-contrib-python-headless && pip install opencv-contrib-python`
@@ -19,14 +25,6 @@
 `table_detect.image2table` 的 `_root_path`, `_filenames` 修改路徑
 
 ## 問題解決
-
-img2table error
-
-需要直接到 `img2table.document.base.rotation line 206` 修改成 `height, width = (img.shape[0], img.shape[1])`
-
-因為 pass 的 img shape 不是灰階圖, 需要是原本的 3 channel 圖, 這樣修改可以套用到灰階或3通道圖
-
----
 
 `opencv` or `cv2` 相關問題
 
