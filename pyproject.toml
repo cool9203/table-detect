@@ -13,11 +13,11 @@ requires-python = ">=3.7"
 classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
     "tomli==2.0.1; python_version < '3.11'",
-    "img2table[easyocr]",
-    "pdf2image",
+    "img2table[easyocr]==1.2.11",
+    "pdf2image==1.17.0",
     "camelot-py[base]",
-    "matplotlib",
-    "requests",
+    "matplotlib==3.9.2",
+    "requests==2.32.3",
 ]
     [project.optional-dependencies]
 
