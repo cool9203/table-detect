@@ -23,6 +23,7 @@ def arg_parser() -> argparse.Namespace:
     parser.add_argument("--image_format", type=str, default="png", help="pdf to image 時的圖片格式")
     parser.add_argument("--ocr", action="store_true", help="是否使用 ocr")
     parser.add_argument("-o", "--output_path", type=str, default="./data/result", help="儲存結果的路徑")
+    parser.add_argument("-m", "--margin", type=int, default=20, help="crop image 時預留的邊界 pixel 大小")
 
     parser.add_argument("--save_crop_image", action="store_true", help="是否儲存 crop image")
     parser.add_argument("--crop_image_draw_table_line", action="store_true", help="crop image 是否要畫上表格線")

@@ -152,12 +152,18 @@ def draw_table_in_image(
 def crop_table_bbox(
     src: InputType,
     tables: List[ExtractedTable],
+    margin: int,
     **kwds,
 ) -> List[MatLike]:
     img = get_image(src=src)
     crop_img = list()
+
     for table in tables:
-        crop_img.append(img[table.bbox.y1 : table.bbox.y2, table.bbox.x1 : table.bbox.x2])
+        x1 = max(table.bbox.x1 - margin, 0)
+        x2 = min(table.bbox.x2 + margin, img.shape[1])
+        y1 = max(table.bbox.y1 - margin, 0)
+        y2 = min(table.bbox.y2 + margin, img.shape[0])
+        crop_img.append(img[y1:y2, x1:x2])
 
     return crop_img
 
@@ -189,6 +195,7 @@ def main(
     save_table_image: bool = False,
     save_table_bbox_image: bool = False,
     save_df_to_xlsx: bool = False,
+    margin: int = 20,
     ocr: OCRInstance = None,
     run_table_detect: Callable[..., List[ExtractedTable]] = None,
     *args,
@@ -260,7 +267,7 @@ def main(
                     _img = draw_table_in_image(src=rotated_img, tables=tables, show_cell_text=False, **kwds)
                 else:
                     _img = rotated_img
-                crop_table_images = crop_table_bbox(src=_img, tables=tables, **kwds)
+                crop_table_images = crop_table_bbox(src=_img, tables=tables, margin=margin, **kwds)
                 for i, crop_table_image in enumerate(crop_table_images):
                     plt.imsave(str(save_path / f"{save_filename}-crop-table-{i}.png"), crop_table_image)
 
