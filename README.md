@@ -3,7 +3,6 @@
 - [力新案 - 表格偵測(base opencv)](#力新案---表格偵測base-opencv)
   - [安裝](#安裝)
   - [啟動與使用指令](#啟動與使用指令)
-    - [資料路徑修改](#資料路徑修改)
   - [問題解決](#問題解決)
 
 ## 安裝
@@ -19,10 +18,6 @@
 `python table_detect --root_path <YOUR DATA ROOT PATH> --filenames <YOUR DATA IMAGE FILENAME> <YOUR DATA DIRECTORY NAME>`
 
 使用 **先找出表格與對應儲存格框線, 再根據各儲存格使用 ocr 預測內容** 流程
-
-### 資料路徑修改
-
-`table_detect.image2table` 的 `_root_path`, `_filenames` 修改路徑
 
 ## 問題解決
 
