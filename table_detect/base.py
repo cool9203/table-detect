@@ -192,7 +192,7 @@ def main(
     *args,
     **kwds,
 ) -> None:
-    if run_table_detect:
+    if not run_table_detect:
         raise RuntimeError("run_table_detect function must be pass")
 
     all_time = list()
