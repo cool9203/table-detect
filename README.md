@@ -22,9 +22,9 @@
 
 img2table error
 
-需要直接到 `img2table.document.base.rotation line 206` 修改成 `height, width, channel = img.shape`
+需要直接到 `img2table.document.base.rotation line 206` 修改成 `height, width = (img.shape[0], img.shape[1])`
 
-因為 pass 的 img shape 不是灰階圖, 需要是原本的 3 channel 圖
+因為 pass 的 img shape 不是灰階圖, 需要是原本的 3 channel 圖, 這樣修改可以套用到灰階或3通道圖
 
 ---
 
