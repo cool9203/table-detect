@@ -262,7 +262,7 @@ def main(
                     _img = rotated_img
                 crop_table_images = crop_table_bbox(src=_img, tables=tables, **kwds)
                 for i, crop_table_image in enumerate(crop_table_images):
-                    plt.imsave(str(save_path / f"{save_filename}-table-{i}.png"), crop_table_image)
+                    plt.imsave(str(save_path / f"{save_filename}-crop-table-{i}.png"), crop_table_image)
 
             if show_image or save_table_image:
                 _img = draw_table_in_image(src=rotated_img, tables=tables, **kwds)
@@ -270,7 +270,7 @@ def main(
                     plt.imshow(_img)
                     plt.show()
                 if save_table_image:
-                    plt.imsave(str(save_path / f"{save_filename}.png"), _img)
+                    plt.imsave(str(save_path / f"{save_filename}-table.png"), _img)
 
             if show_image_bbox or save_table_bbox_image:
                 _img = draw_table_bbox_in_image(src=rotated_img, tables=tables, **kwds)
@@ -278,7 +278,7 @@ def main(
                     plt.imshow(_img)
                     plt.show()
                 if save_table_bbox_image:
-                    plt.imsave(str(save_path / f"{save_filename}.png"), _img)
+                    plt.imsave(str(save_path / f"{save_filename}-bbox.png"), _img)
 
             origin_image_bytes.close()
             print("-" * 25)
