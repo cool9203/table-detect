@@ -10,10 +10,8 @@ import numpy as np
 import pandas as pd
 import pdf2image
 from cv2.typing import MatLike
-from img2table.document import Image as ImageDoc
 from img2table.document.base.rotation import estimate_skew, get_connected_components, get_relevant_angles
 from img2table.ocr.base import OCRInstance
-from img2table.tables.image import TableImage
 from img2table.tables.objects.extraction import ExtractedTable
 from matplotlib import pyplot as plt
 from PIL import Image
@@ -177,6 +175,8 @@ def draw_table_bbox_in_image(
 
 
 def main(
+    root_path: Union[str, Path] = _root_path,
+    filenames: List[Union[str, Path]] = _filenames,
     image_format: str = "png",
     output_path: str = "./data",
     dpi: int = 200,
@@ -188,19 +188,30 @@ def main(
     save_table_bbox_image: bool = False,
     save_df_to_xlsx: bool = False,
     ocr: OCRInstance = None,
-    run_table_detect: Callable = None,
+    run_table_detect: Callable[..., List[ExtractedTable]] = None,
     *args,
     **kwds,
 ) -> None:
     if not run_table_detect:
         raise RuntimeError("run_table_detect function must be pass")
 
+    root_path = Path(root_path)
+    output_path = Path(output_path)
+
+    if not root_path.exists():
+        raise NotADirectoryError("root_path not a directory")
+
+    for filename in filenames:
+        if not Path(root_path, filename).exists():
+            raise FileNotFoundError(f"'{filename}' not found")
+
     all_time = list()
-    for filename in _filenames:
+    for filename in filenames:
         print(filename)
         save_path = Path(output_path, filename)
         save_path.mkdir(parents=True, exist_ok=True)
-        path = Path(_root_path, filename)
+        path = Path(root_path, filename)
+
         image_name_transform = dict()
         if path.suffix == ".pdf":
             images = pdf2image.convert_from_path(str(path), dpi=dpi)
@@ -209,7 +220,6 @@ def main(
         elif path.is_dir():
             images = list()
             for _path in path.iterdir():
-                print(_path.name)
                 if _path.suffix == ".pdf":
                     images += pdf2image.convert_from_path(str(_path), dpi=dpi)
                 elif _path.suffix in [".jpg", ".jpeg", ".png", ".bmp"]:
@@ -221,6 +231,9 @@ def main(
             raise TypeError("Not support file extension")
 
         for index, image in enumerate(images):
+            if index in image_name_transform:
+                print(image_name_transform.get(index))
+
             origin_image_bytes = io.BytesIO()
             image.save(fp=origin_image_bytes, format=image_format)
 

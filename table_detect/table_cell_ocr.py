@@ -39,6 +39,7 @@ def run_table_detect(
     )
 
     if not tables:
+        print("Use board less method")
         tables = document.extract_tables(
             ocr=None,
             implicit_rows=implicit_rows,
