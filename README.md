@@ -1,10 +1,18 @@
 # 力新案 - 表格偵測(base opencv)
 
-## 使用
+## 安裝
+
+`pip install -e . && pip uninstall -y opencv-contrib-python opencv-python opencv-python-headless opencv-contrib-python-headless && pip install opencv-contrib-python`
+
+安裝該 package 與修復 opencv 重複安裝問題
+
+## 啟動與使用指令
 
 目前是使用
 
 `python -m table_detect.test_table_ocr`
+
+使用 **先找出表格與對應儲存格框線, 再根據各儲存格使用 ocr 預測內容** 流程
 
 ### 資料路徑修改
 
