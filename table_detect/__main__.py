@@ -14,7 +14,7 @@ def arg_parser() -> argparse.Namespace:
         argparse.Namespace: 使用args.name取得傳遞的參數
     """
 
-    parser = argparse.ArgumentParser(description="力新表格 OCR(base opencv)")
+    parser = argparse.ArgumentParser(description="Table detect(base opencv)")
 
     parser.add_argument("-r", "--root_path", type=str, required=True, help="輸入檔案的根路徑")
     parser.add_argument("-f", "--filenames", type=str, nargs="+", required=True, help="輸入檔案的名稱(可以是資料夾)")

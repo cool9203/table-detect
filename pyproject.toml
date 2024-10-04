@@ -7,7 +7,7 @@ build-backend = "hatchling.build"
 name = "table-detect"
 dynamic = ["version"]
 authors = [{ name = "yoga", email = "ychsu@iii.org.tw" }]
-description = "力新案 - 表格辨識"
+description = "Table detect"
 readme = "README.md"
 requires-python = ">=3.7"
 classifiers = ["Programming Language :: Python :: 3"]

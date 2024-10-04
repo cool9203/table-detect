@@ -9,6 +9,10 @@
 
 `pip install -e . && pip uninstall -y opencv-contrib-python opencv-python opencv-python-headless opencv-contrib-python-headless && pip install opencv-contrib-python`
 
+或是
+
+`pip install -r requirements.txt && pip uninstall -y opencv-contrib-python opencv-python opencv-python-headless opencv-contrib-python-headless && pip install opencv-contrib-python`
+
 安裝該 package 與修復 opencv 重複安裝問題
 
 ## 啟動與使用指令
