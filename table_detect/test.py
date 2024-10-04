@@ -14,6 +14,7 @@ from cv2.typing import MatLike
 from img2table.document.base.rotation import estimate_skew, get_connected_components, get_relevant_angles, rotate_img_with_border
 from img2table.ocr.base import OCRInstance
 from img2table.tables.objects.extraction import ExtractedTable
+from img2table.tables.objects.table import Table
 from matplotlib import pyplot as plt
 from PIL import Image
 
@@ -85,7 +86,16 @@ def run_table_detect(
     show_processed_image: bool = False,
     **kwds,
 ) -> List[ExtractedTable]:
-    return _table.detect_table(src=src)
+    tables = _table.detect_table(src=src)
+    new_tables = list()
+    for table in tables:
+        if isinstance(table, Table):
+            new_tables.append(table.extracted_table)
+        elif isinstance(table, ExtractedTable):
+            new_tables.append(table)
+        else:
+            raise TypeError
+    return new_tables
 
 
 def show_table_in_image(
@@ -165,6 +175,7 @@ def main(
             print(f"rotated: {rotated}")
 
             tables = run_table_detect(src=img, ocr=ocr, **kwds)
+            print(tables)
 
             if show_image:
                 show_table_in_image(src=rotated_img, tables=tables, **kwds)
@@ -181,5 +192,5 @@ if __name__ == "__main__":
     main(
         dpi=200,
         show_image=False,
-        show_image_bbox=False,
+        show_image_bbox=True,
     )

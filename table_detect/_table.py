@@ -10,16 +10,15 @@ from cv2.typing import MatLike
 from img2table.tables.objects.cell import Cell
 from img2table.tables.objects.line import Line
 from img2table.tables.objects.table import Table
+from img2table.tables.processing.bordered_tables.cells import get_cells
+from img2table.tables.processing.bordered_tables.tables.cell_clustering import cluster_cells_in_tables
+from img2table.tables.processing.bordered_tables.tables.semi_bordered import add_semi_bordered_cells
+from img2table.tables.processing.bordered_tables.tables.table_creation import cluster_to_table, normalize_table_cells
 from matplotlib import pyplot as plt
 
 from table_detect.metrics import compute_img_metrics
 
 InputType = Union[str, Path, bytes, io.BytesIO, MatLike]
-
-
-v_lines: List[Line] = list()
-h_lines: List[Line] = list()
-tables: List[Table] = list()
 
 
 def get_image(
@@ -156,13 +155,10 @@ def identify_straight_lines_custom(
     detect = cv2.dilate(detect, ksize, iterations=3)  # 對黑色侵蝕(白色膨脹)
     detect = cv2.erode(detect, ksize, iterations=3)  # 對黑色膨脹(侵蝕白色)
 
-    _, _, stats, _ = cv2.connectedComponentsWithStats(detect, 8, cv2.CV_32S)
-    for idx, stat in enumerate(stats):
-        if idx == 0:
-            continue
-
-        # Get stats
-        x, y, w, h, area = stat
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(detect, 8, cv2.CV_32S)
+    for index in range(1, num_labels):
+        x, y, w, h, area = stats[index]
+        mask: np.ndarray = labels == index
 
         if (w >= min_line_length and not vertical) or (h >= min_line_length and vertical):
             lines.append(
@@ -247,8 +243,7 @@ def detect_lines(
     iterations: int = 1,
     min_line_length: int = 15,
     text_contours: Optional[List[Cell]] = [],
-):
-    global v_lines, h_lines
+) -> Tuple[List[Line], List[Line]]:
     result = img.copy()
 
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
@@ -320,6 +315,36 @@ def detect_lines(
 
     plt.show()
 
+    return (h_lines, v_lines)
+
+
+def get_tables(cells: List[Cell], elements: List[Cell], lines: List[Line], char_length: float) -> List[Table]:
+    """
+    Identify and create Table object from list of image cells
+    :param cells: list of cells found in image
+    :param elements: list of image elements
+    :param lines: list of image lines
+    :param char_length: average character length
+    :return: list of Table objects inferred from cells
+    """
+    # Cluster cells into tables
+    list_cluster_cells = cluster_cells_in_tables(cells=cells)
+
+    # Normalize cells in clusters
+    clusters_normalized = [normalize_table_cells(cluster_cells=cluster_cells) for cluster_cells in list_cluster_cells]
+
+    # Add semi-bordered cells to clusters
+    complete_clusters = [
+        add_semi_bordered_cells(cluster=cluster, lines=lines, char_length=char_length)
+        for cluster in clusters_normalized
+        if len(cluster) > 0
+    ]
+
+    # Create tables from cells clusters
+    tables = [cluster_to_table(cluster_cells=cluster, elements=elements) for cluster in complete_clusters]
+
+    return tables
+
 
 def detect_table(
     src: InputType,
@@ -329,6 +354,9 @@ def detect_table(
 
     img = processing_image(img=origin_img)
     text_contours = detect_text(img)
-    detect_lines(img=img, text_contours=text_contours)
+    (h_lines, v_lines) = detect_lines(img=img, text_contours=text_contours)
+    # Create cells from rows
+    cells = get_cells(horizontal_lines=h_lines, vertical_lines=v_lines)
 
-    return []
+    # Create tables from rows
+    return get_tables(cells=cells, elements=text_contours, lines=v_lines + h_lines, char_length=11)
