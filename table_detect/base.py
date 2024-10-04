@@ -257,7 +257,7 @@ def main(
 
             if save_crop_image:
                 if crop_image_draw_table_line:
-                    _img = draw_table_in_image(src=rotated_img, tables=tables, cell_text=False, **kwds)
+                    _img = draw_table_in_image(src=rotated_img, tables=tables, show_cell_text=False, **kwds)
                 else:
                     _img = rotated_img
                 crop_table_images = crop_table_bbox(src=_img, tables=tables, **kwds)
