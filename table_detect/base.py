@@ -2,6 +2,7 @@
 
 import io
 import time
+import warnings
 from pathlib import Path
 from typing import Callable, List, Tuple, Union
 
@@ -25,6 +26,7 @@ _filenames = [
     "港洲-陸軍-584旅F棟B區4FL樑版.pdf",
     "太豪-S016-1F車道樑版.pdf",
 ]
+warnings.simplefilter("ignore")
 
 
 def get_image(
