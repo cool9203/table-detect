@@ -1,6 +1,6 @@
-# 力新案 - 表格偵測(base opencv)
+# 表格偵測(base opencv)
 
-- [力新案 - 表格偵測(base opencv)](#力新案---表格偵測base-opencv)
+- [表格偵測(base opencv)](#表格偵測base-opencv)
   - [安裝](#安裝)
   - [啟動與使用指令](#啟動與使用指令)
   - [問題解決](#問題解決)
