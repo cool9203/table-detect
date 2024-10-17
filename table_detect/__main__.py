@@ -25,10 +25,11 @@ def arg_parser() -> argparse.Namespace:
     parser.add_argument("-o", "--output_path", type=str, default="./data/result", help="儲存結果的路徑")
     parser.add_argument("-m", "--margin", type=int, default=20, help="crop image 時預留的邊界 pixel 大小")
 
-    parser.add_argument("--save_crop_image", action="store_true", help="是否儲存 crop image")
     parser.add_argument("--crop_image_draw_table_line", action="store_true", help="crop image 是否要畫上表格線")
     parser.add_argument("--show_image", action="store_true", help="執行時顯示帶有表格線的圖片")
     parser.add_argument("--show_image_bbox", action="store_true", help="執行時顯示帶有表格'外框'線的圖片")
+
+    parser.add_argument("--save_crop_image", action="store_true", help="是否儲存 crop image")
     parser.add_argument("--save_table_image", action="store_true", help="是否儲存帶有表格線的圖片")
     parser.add_argument("--save_table_bbox_image", action="store_true", help="是否儲存帶有表格'外框'線的圖片")
     parser.add_argument("--save_df_to_xlsx", action="store_true", help="是否儲存表格結果")

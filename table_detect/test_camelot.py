@@ -11,10 +11,6 @@ import pdf2image
 from camelot.parsers import Lattice
 from matplotlib import pyplot as plt
 
-import utils
-
-logger = utils.get_logger(logger_name=__name__)
-
 _root_path = "/mnt/c/Users/ychsu/Downloads"
 _filenames = [
     "大賈-馬禮遜美國學校 1區2F樑(一次).pdf",
