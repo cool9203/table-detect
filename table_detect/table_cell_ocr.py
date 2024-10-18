@@ -30,23 +30,29 @@ def run_table_detect(
     Image.fromarray(img).save(fp=image_bytes, format="png")
     document = ImageDoc(image_bytes)
 
-    tables = document.extract_tables(
-        ocr=None,
-        implicit_rows=implicit_rows,
-        # implicit_columns=implicit_columns,
-        min_confidence=min_confidence,
-        borderless_tables=False,
-    )
-
-    if not tables:
-        print("Use board less method")
+    try:
         tables = document.extract_tables(
             ocr=None,
             implicit_rows=implicit_rows,
             # implicit_columns=implicit_columns,
             min_confidence=min_confidence,
-            borderless_tables=True,
+            borderless_tables=False,
         )
+    except Exception:
+        tables = []
+
+    if not tables:
+        print("Use board less method")
+        try:
+            tables = document.extract_tables(
+                ocr=None,
+                implicit_rows=implicit_rows,
+                # implicit_columns=implicit_columns,
+                min_confidence=min_confidence,
+                borderless_tables=True,
+            )
+        except Exception:
+            tables = []
 
     # Predict table cell text content
     used_boxes = set()
