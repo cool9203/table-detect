@@ -1,111 +1,51 @@
 # coding: utf-8
 
-import io
+from collections import OrderedDict
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Union
 
-import cv2
-import numpy as np
-import pdf2image
 from camelot.parsers import Lattice
-from matplotlib import pyplot as plt
+from img2table.tables.objects.extraction import BBox, ExtractedTable
+from PIL import Image
 
-_root_path = "/mnt/c/Users/ychsu/Downloads"
-_filenames = [
-    "大賈-馬禮遜美國學校 1區2F樑(一次).pdf",
-    "港洲-陸軍-584旅F棟B區4FL樑版.pdf",
-    "太豪-S016-1F車道樑版.pdf",
-]
+from table_detect.base import (
+    InputType,
+    get_image,
+    main,
+)
 
 
 def run_table_detect(
-    src: Union[str, Path, bytes, io.BytesIO],
-    width: float = None,
-    height: float = None,
+    src: InputType,
     **kwds,
 ):
-    parser = Lattice(**kwds)
-    parser.pdf_width = width
-    parser.pdf_height = height
-    parser.imagename = src
-    parser._generate_table_bbox()
-    return parser
+    img = get_image(src=src)
+    with TemporaryDirectory() as tempdir:
+        _path = Path(tempdir, "temp.png")
+        img = Image.fromarray(img)
+        img.save(fp=_path, format="png")
 
+        parser = Lattice(**kwds)
+        parser.pdf_width = img.width
+        parser.pdf_height = img.height
+        parser.imagename = _path
+        parser._generate_table_bbox()
 
-def show_table_in_image(
-    src: Union[str, Path, bytes, io.BytesIO],
-    tables: Lattice,
-):
-    if isinstance(src, bytes):
-        _src = src
-    elif isinstance(src, io.BytesIO):
-        src.seek(0)
-        _src = src.read()
-    elif isinstance(src, (str, Path)):
-        with io.open(str(src), "rb") as f:
-            _src = f.read()
-    table_img = cv2.imdecode(np.fromstring(_src, np.uint8), cv2.IMREAD_COLOR)
-
-    for points in [tables.vertical_segments, tables.horizontal_segments]:
-        for p in points:
-            cv2.line(
-                table_img, (int(p[0]), int(tables.pdf_height - p[1])), (int(p[2]), int(tables.pdf_height - p[3])), (0, 0, 255), 2
+        tables = list()
+        for points, joints in parser.table_bbox.items():
+            tables.append(
+                ExtractedTable(
+                    bbox=BBox(
+                        x1=int(points[0]),
+                        y1=int(parser.pdf_height - points[3]),
+                        x2=int(points[2]),
+                        y2=int(parser.pdf_height - points[1]),
+                    ),
+                    title=None,
+                    content=OrderedDict(),
+                )
             )
-
-    plt.imshow(table_img[:, :, ::-1])  # BGR to RGB
-    plt.show()
-
-
-def show_table_bbox_in_image(
-    src: Union[str, Path, bytes, io.BytesIO],
-    tables: Lattice,
-):
-    if isinstance(src, bytes):
-        _src = src
-    elif isinstance(src, io.BytesIO):
-        src.seek(0)
-        _src = src.read()
-    elif isinstance(src, (str, Path)):
-        with io.open(str(src), "rb") as f:
-            _src = f.read()
-    table_img = cv2.imdecode(np.fromstring(_src, np.uint8), cv2.IMREAD_COLOR)
-
-    for points, joints in tables.table_bbox.items():
-        cv2.rectangle(
-            table_img,
-            (int(points[0]), int(tables.pdf_height - points[1])),
-            (int(points[2]), int(tables.pdf_height - points[3])),
-            (0, 0, 255),
-            2,
-        )
-
-    plt.imshow(table_img[:, :, ::-1])  # BGR to RGB
-    plt.show()
-
-
-def main(
-    image_format: str = "png",
-    dpi: int = 200,
-    *args,
-    **kwds,
-) -> None:
-    for filename in _filenames:
-        print(filename)
-        path = Path(_root_path, filename)
-        images = pdf2image.convert_from_path(str(path), dpi=dpi)
-        with TemporaryDirectory() as tempdir:
-            for image in images:
-                _path = Path(tempdir, f"temp.{image_format}")
-                image.save(fp=str(_path), format=image_format)
-
-                tables = run_table_detect(src=str(_path), ocr=None, width=image.width, height=image.height)
-                # show_table_in_image(src=str(_path), tables=tables)
-                show_table_bbox_in_image(src=str(_path), tables=tables)
-
-                print("-" * 25)
-        print("*" * 50)
-        # break
+        return tables
 
 
 if __name__ == "__main__":
